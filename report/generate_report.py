@@ -9,7 +9,7 @@ Usage:
     python report/generate_report.py \\
         --dataset datasets/_verify/verify_early_detection \\
         --investigation report/examples/investigation_early_detection.json \\
-        --output report/output/early_detection_rca.html
+        --output report/examples/early_detection_rca.html
 """
 
 from __future__ import annotations

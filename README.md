@@ -77,6 +77,46 @@ Each injected dataset lives under `datasets/_verify/verify_<type>/`.
 Comparing agent versions on the same benchmark—agent versions compete; they do not
 train each other.
 
+### How to read this
+
+**The suite.** Eight small committed fixtures under `datasets/_verify/`—one per
+anomaly type (`edge_signature`, `chamber_specific`, …, `clean`). Each folder has
+four CSVs plus `ground_truth.json`. The agent reads only the CSVs; the scorer reads
+ground truth to label each run.
+
+**Five runs each.** The LLM agent is non-deterministic, so `run_v0_repeated.py`
+calls `investigate()` five times per dataset (`--runs 5`) and reports how often each
+outcome appears. A score like `early_detection` **0/5** means zero true positives
+across five attempts—the agent never set `detected=true` on that dataset. **5/5**
+means it caught the excursion every time.
+
+**Detection labels** (from `scorer/score.py`):
+
+| Label | Meaning |
+|-------|---------|
+| **TP** | Real excursion present; agent said `detected=true` |
+| **FN** | Real excursion present; agent missed it (`detected=false`) |
+| **FP** | No excursion (`clean`); agent falsely flagged one |
+| **TN** | No excursion; agent correctly said clean |
+
+**Row highlights in the table below:**
+
+- **`early_detection` detection** — the hardest case for v0: inline metrology drifts
+  over several lots while WAT and Sort still pass standard gates. v0 had no
+  `inline_trace` tool, so it missed the signal all five times. v1 adds that tool plus
+  prompt rules for sustained inline drift and detected it every run.
+- **`clean` false positives** — v0 cried wolf on the control dataset all five runs
+  (five **FP**s). v1’s stricter “default to clean unless a driver clears three bars”
+  rule eliminated those false alarms (five **TN**s).
+- **Overall precision** — `TP / (TP + FP)` aggregated across all eight datasets in
+  each batch run, then averaged over five batch runs. It answers: *when the agent
+  says “excursion,” how often is it right?* v0’s clean-dataset FPs pulled precision
+  to 75%; v1 reached 100% on this suite.
+
+These numbers are from the `_verify` smoke suite (50-lot fixtures), not a full
+~30-dataset production benchmark. They are meant to show architectural leverage—one
+tool + prompt change moving a blind spot to reliable detection—not fab sign-off stats.
+
 | Metric | v0 baseline | v1 (+ `inline_trace`, early-detection rules) |
 |--------|-------------|-----------------------------------------------|
 | `early_detection` detection | 0/5 (0%) | 5/5 (100%) |
@@ -128,16 +168,18 @@ Example investigation fixture and rendered report:
 
 - `report/examples/investigation_early_detection.json` — sample agent findings for
   the `early_detection` case (overlay drift at `m1_litho`, WAT/Sort still nominal).
-- Render the HTML:
+- **`report/examples/early_detection_rca.html`** — committed demo report (open in a
+  browser on GitHub or locally; no generation step required).
+- Regenerate after changing findings or charts:
 
 ```bash
 python report/generate_report.py \
   --dataset datasets/_verify/verify_early_detection \
   --investigation report/examples/investigation_early_detection.json \
-  --output report/output/early_detection_rca.html
+  --output report/examples/early_detection_rca.html
 ```
 
-Open `report/output/early_detection_rca.html` in a browser. The report includes
+Local scratch output can go to `report/output/` (gitignored). The report includes
 positive inline-drift evidence, negative-evidence charts (yield SPC, wafer map, WAT
 panel, chamber bars), ruled-out hypotheses, and a monitoring-gap callout— all from
 real table data, no LLM at render time.
@@ -155,6 +197,7 @@ real table data, no LLM at render time.
 | `agent/tools/` | Deterministic investigation functions |
 | `scorer/` | Detection + diagnosis scoring |
 | `report/generate_report.py` | Standalone HTML RCA |
+| `report/examples/` | Demo investigation JSON + committed `early_detection_rca.html` |
 | `datasets/_verify/` | Small committed fixtures (one per anomaly type) |
 | `docs/PLAN.md` | Design rationale and build history |
 
