@@ -1,0 +1,17 @@
+{
+  "dataset_id": "verify_chamber_specific",
+  "difficulty": "medium",
+  "excursion": true,
+  "type": "chamber_specific",
+  "location": "CH-A",
+  "origin_step": "gate_etch",
+  "affected_param": "idsat_uA",
+  "signature": null,
+  "causal_chain": null,
+  "confounder": null,
+  "affected_lots": [
+    "lot_017"
+  ],
+  "noise_level": 0.3,
+  "seed": 101
+}

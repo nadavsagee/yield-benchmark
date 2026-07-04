@@ -1,0 +1,22 @@
+{
+  "dataset_id": "verify_early_detection",
+  "difficulty": "medium",
+  "excursion": true,
+  "type": "early_detection",
+  "location": null,
+  "origin_step": "m1_litho",
+  "affected_param": null,
+  "signature": null,
+  "causal_chain": [
+    "overlay_shift"
+  ],
+  "confounder": null,
+  "affected_lots": [
+    "lot_035",
+    "lot_036",
+    "lot_037",
+    "lot_038"
+  ],
+  "noise_level": 0.3,
+  "seed": 505
+}

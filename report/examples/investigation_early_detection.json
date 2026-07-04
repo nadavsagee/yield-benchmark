@@ -1,0 +1,15 @@
+{
+  "dataset_id": "verify_early_detection",
+  "primary_lot": "lot_038",
+  "affected_lots": ["lot_035", "lot_036", "lot_037", "lot_038"],
+  "findings": {
+    "detected": true,
+    "type": "early_detection",
+    "location": null,
+    "origin_step": "m1_litho",
+    "affected_param": null,
+    "cause": "Sustained overlay_nm drift at m1_litho across four consecutive lots (1.99→2.96 nm); inline_trace level σ=+5.1 with trailing-window slope 0.31 while WAT parametrics (max |σ|<2) and Sort yield (96.0%) remain in-family.",
+    "confidence": "high",
+    "reasoning": "Pre-step flagged lot_038 at score 6.16 (rank 1). inline_trace confirmed monotonic overlay_nm drift at m1_litho: level_sigma=+5.12, trend_slope=0.31, sustained=1.26, out_of_control=true. Signal is subtle lot-to-lot — not visible on standard WAT/Sort gates — but detectable via multi-lot inline trend analysis."
+  }
+}

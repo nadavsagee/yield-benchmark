@@ -1,0 +1,17 @@
+{
+  "dataset_id": "verify_edge_signature",
+  "difficulty": "medium",
+  "excursion": true,
+  "type": "edge_signature",
+  "location": null,
+  "origin_step": null,
+  "affected_param": "rc_ohm",
+  "signature": "edge_ring",
+  "causal_chain": null,
+  "confounder": null,
+  "affected_lots": [
+    "lot_008"
+  ],
+  "noise_level": 0.3,
+  "seed": 42
+}

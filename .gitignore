@@ -1,0 +1,25 @@
+# Environment and secrets
+.env
+.env.*
+*.env
+secrets/
+credentials.json
+*credentials*
+*api_key*
+*api-key*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*$py.class
+.venv/
+venv/
+
+# Generated reports
+report/output/
+
+# Large generated datasets (keep small _verify fixtures in repo)
+/datasets/*
+!/datasets/_verify/
+!/datasets/_verify/**

@@ -1,0 +1,21 @@
+{
+  "dataset_id": "verify_propagation",
+  "difficulty": "medium",
+  "excursion": true,
+  "type": "propagation",
+  "location": null,
+  "origin_step": "contact_etch",
+  "affected_param": "rc_ohm",
+  "signature": null,
+  "causal_chain": [
+    "defect_up",
+    "rc_up",
+    "speed_fail_up"
+  ],
+  "confounder": null,
+  "affected_lots": [
+    "lot_012"
+  ],
+  "noise_level": 0.3,
+  "seed": 202
+}

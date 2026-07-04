@@ -1,0 +1,20 @@
+{
+  "dataset_id": "verify_confounding",
+  "difficulty": "medium",
+  "excursion": true,
+  "type": "confounding",
+  "location": null,
+  "origin_step": null,
+  "affected_param": "rc_ohm",
+  "signature": null,
+  "causal_chain": [
+    "rc_up",
+    "speed_fail_up"
+  ],
+  "confounder": "rs_ohm",
+  "affected_lots": [
+    "lot_017"
+  ],
+  "noise_level": 0.3,
+  "seed": 707
+}

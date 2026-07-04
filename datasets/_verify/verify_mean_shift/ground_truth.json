@@ -1,0 +1,20 @@
+{
+  "dataset_id": "verify_mean_shift",
+  "difficulty": "medium",
+  "excursion": true,
+  "type": "mean_shift",
+  "location": null,
+  "origin_step": null,
+  "affected_param": "vtn_mV",
+  "signature": null,
+  "causal_chain": [
+    "vt_shift",
+    "speed_fail_up"
+  ],
+  "confounder": null,
+  "affected_lots": [
+    "lot_042"
+  ],
+  "noise_level": 0.3,
+  "seed": 404
+}

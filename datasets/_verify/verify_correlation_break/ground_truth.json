@@ -1,0 +1,20 @@
+{
+  "dataset_id": "verify_correlation_break",
+  "difficulty": "medium",
+  "excursion": true,
+  "type": "correlation_break",
+  "location": null,
+  "origin_step": null,
+  "affected_param": null,
+  "signature": null,
+  "causal_chain": [
+    "wat_normal",
+    "sort_fail_up"
+  ],
+  "confounder": null,
+  "affected_lots": [
+    "lot_033"
+  ],
+  "noise_level": 0.3,
+  "seed": 606
+}
