@@ -172,7 +172,7 @@ def _sort_features(
         "sort_gross_rate": gross_rate,
         "sort_leakage_rate": leakage_rate,
         "sort_wafer_yield_std": float(wafer_yield.std(ddof=0)) if len(wafer_yield) > 1 else 0.0,
-        "sort_fail_only_signal": float((~lot_df["pass"]).mean()) * weight,
+        "sort_fail_only_signal": float((~lot_df["pass"]).mean()),
     }
     if weight != 1.0:
         return {k: v * weight for k, v in feats.items()}

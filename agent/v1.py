@@ -56,12 +56,12 @@ Pre-step gate — when to investigate vs stop:
   is appropriate ONLY on this path — to confirm or reject the pre-step inline/drift lead.
 
 Confirmed sustained inline drift — valid driver ONLY with a strong pre-step lead:
-- Apply this path ONLY when the pre-step flagged a suspect lot above {STRONG_ANOMALY_THRESHOLD}
-  (early_detection datasets score well above this; clean datasets do not).
+- Apply this path ONLY when the pre-step flagged a suspect lot at or above the strong
+  threshold stated in the opening message.
 - On that flagged lot, inline_trace must return out_of_control=true with sustained, monotonic
   trailing-window drift (large level_sigma AND meaningful trend_slope/sustained — not a faint wobble).
-  Then the inline step/metric IS a confirmed driver even if WAT and Sort stay in-family — the
-  early_detection pattern. Set type="early_detection", detected=true, origin_step from inline_trace.step.
+  Then the inline step/metric IS a confirmed driver even if WAT and Sort stay in-family.
+  Set type="early_detection", detected=true, origin_step from inline_trace.step.
 - Without a strong pre-step lead, inline_trace results are NOT sufficient for detected=true —
   even if a lot shows minor inline variation. Clean means no confirmed driver anywhere.
 
@@ -69,24 +69,28 @@ Methodology (follow in order):
 1. Characterize — read the pre-step lead first. No strong lead → lean clean; do not over-investigate.
 2. Localize — which lot, chamber, inline step, or wafer region? Focus on the pre-step suspect if flagged.
 3. Confirm causation — does inline -> WAT -> sort chain hold? Co-location is NOT causation.
-   Use inline_trace ONLY when the pre-step gave a strong lead; chain_correlate only sees defect_density.
+   Use inline_trace ONLY when the pre-step gave a strong lead; use chain_correlate for
+   inline-to-WAT-to-Sort propagation links.
 4. Confirm excursion — excursion_confirm for WAT/Sort; inline_trace only on the strong-lead path above.
 
 Type decision hierarchy (apply ONLY after a confirmed driver has cleared the three-bar test;
 when signals overlap, pick the first matching rule):
-1. edge_signature — edge-ring/radial spatial signature (spatial_signature) with an edge-high
-   WAT parameter (wat_profile radial/edge shift). Classify as edge_signature even if the lot
+1. edge_signature — edge-ring/radial spatial signature (spatial_signature) with an edge-skewed
+   WAT shift (wat_profile radial/edge pattern). Classify as edge_signature even if the lot
    also commons to a chamber. Defining evidence: the spatial signature.
-2. propagation — intact inline→WAT→Sort chain (chain_correlate chain_intact=true) that
-   originates at an elevated inline defect (inline defect itself out of control on
-   excursion_confirm). Defining evidence: a real inline defect origin step.
+2. propagation — intact inline→WAT→Sort chain (chain_correlate chain_intact=true) with an
+   elevated inline defect at the origin step in chain_correlate links. Defining evidence:
+   defect-driven chain origin, not chamber co-occurrence alone.
 3. chamber_specific — commonality to one chamber plus a parametric WAT shift, but inline
    defects are normal (chain_correlate breaks at the WAT node, not at a defect origin).
    Defining evidence: chamber commonality with a parametric — not defect — mechanism.
-   Set location to the commons_to chamber and origin_step to gate_etch when commonality confirms it.
-4. early_detection — ONLY when pre-step flagged a strong suspect (score >= {STRONG_ANOMALY_THRESHOLD})
-   AND inline_trace on that lot confirms sustained inline drift (out_of_control=true,
-   sustained/monotonic trend) with WAT and Sort still in-family. Set origin_step from inline_trace.step.
+   Set location to commons_to. Set origin_step by looking up that chamber in route for this
+   lot and recording the inline step where those wafers were processed — derive from routing
+   data only; never assume a fixed step name.
+4. early_detection — ONLY when pre-step flagged a strong suspect (score at or above the
+   opening-message threshold) AND inline_trace on that lot confirms sustained inline drift
+   (out_of_control=true, sustained/monotonic trend) with WAT and Sort still in-family.
+   Set origin_step from inline_trace.step.
 5. correlation_break — confirmed Sort failure with genuinely normal WAT and no parametric or
    inline driver. Defining evidence: Sort OOC, WAT in-family. Do NOT use as a catch-all.
 

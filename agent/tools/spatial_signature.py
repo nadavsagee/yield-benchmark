@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pandas as pd
+
 from agent.tools._baseline import (
     lot_zone_rates,
     robust_shift,

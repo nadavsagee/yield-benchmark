@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 from schema import WAT_PARAMS
@@ -9,8 +10,11 @@ from schema import WAT_PARAMS
 from agent.tools._baseline import (
     DEFAULT_SIGMA_THRESHOLD,
     lot_sort_metric,
+    robust_center_spread,
     robust_control_limits,
     robust_shift,
+    robust_sigma,
+    wafer_sort_metric,
 )
 
 
@@ -33,12 +37,7 @@ def excursion_confirm(
     ucl, lcl, _, _ = robust_control_limits(pop_series, lot)
     sigma = robust_shift(lot_mean, pop_series, lot)
 
-    if len(lot_values) > 1 and param in WAT_PARAMS:
-        pct_out = float(((lot_values > ucl) | (lot_values < lcl)).mean())
-    elif len(lot_values) > 1:
-        pct_out = float(((lot_values > ucl) | (lot_values < lcl)).mean())
-    else:
-        pct_out = 1.0 if (lot_mean > ucl or lot_mean < lcl) else 0.0
+    pct_out = _pct_out_vs_wafer_limits(lot_values, lot, param, population, tables)
 
     out_of_control = bool(
         abs(sigma) >= DEFAULT_SIGMA_THRESHOLD or lot_mean > ucl or lot_mean < lcl
@@ -86,3 +85,55 @@ def _resolve_series(
             include_groups=False,
         )
     return lot_vals, pop
+
+
+def _wafer_population_values(
+    lot: str,
+    param: str,
+    population: str,
+    tables: dict[str, pd.DataFrame],
+) -> np.ndarray:
+    """Wafer-level reference sample: all wafers from lots other than `lot`."""
+    wat_df = tables["wat"]
+    sort_df = tables["sort"]
+    sort_key = param if param in _sort_aliases() else population
+
+    if param in WAT_PARAMS:
+        wafer_means = wat_df.groupby(["lot", "wafer"])[param].mean()
+        other = wafer_means[wafer_means.index.get_level_values(0) != lot]
+        return other.to_numpy(dtype=float)
+
+    parts: list[pd.Series] = []
+    for other_lot in sort_df["lot"].unique():
+        if other_lot == lot:
+            continue
+        parts.append(wafer_sort_metric(sort_df, other_lot, sort_key))
+    if not parts:
+        return np.array([], dtype=float)
+    return pd.concat(parts).to_numpy(dtype=float)
+
+
+def _limits_from_values(values: np.ndarray, k: float = DEFAULT_SIGMA_THRESHOLD) -> tuple[float, float]:
+    if values.size == 0:
+        return float("inf"), float("-inf")
+    med, _ = robust_center_spread(values)
+    sigma = robust_sigma(values)
+    return med + k * sigma, med - k * sigma
+
+
+def _pct_out_vs_wafer_limits(
+    lot_values: pd.Series,
+    lot: str,
+    param: str,
+    population: str,
+    tables: dict[str, pd.DataFrame],
+) -> float:
+    """Share of this lot's wafers outside wafer-level UCL/LCL (same k as lot SPC)."""
+    if len(lot_values) == 0:
+        return 0.0
+    ref = _wafer_population_values(lot, param, population, tables)
+    wafer_ucl, wafer_lcl = _limits_from_values(ref)
+    if len(lot_values) == 1:
+        val = float(lot_values.iloc[0])
+        return 1.0 if (val > wafer_ucl or val < wafer_lcl) else 0.0
+    return float(((lot_values > wafer_ucl) | (lot_values < wafer_lcl)).mean())
