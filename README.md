@@ -72,10 +72,12 @@ Each injected dataset lives under `datasets/_verify/verify_<type>/`.
 
 ---
 
-## Measured results (8-dataset `_verify` suite, 5 runs each)
+## Measured results (8-dataset `_verify` suite)
 
 Comparing agent versions on the same benchmark—agent versions compete; they do not
-train each other.
+train each other. These numbers are from the `_verify` smoke suite (50-lot fixtures),
+not a full ~30-dataset production benchmark. They show what each design change buys—not
+fab sign-off stats.
 
 ### How to read this
 
@@ -84,11 +86,10 @@ anomaly type (`edge_signature`, `chamber_specific`, …, `clean`). Each folder h
 four CSVs plus `ground_truth.json`. The agent reads only the CSVs; the scorer reads
 ground truth to label each run.
 
-**Five runs each.** The LLM agent is non-deterministic, so `run_v0_repeated.py`
-calls `investigate()` five times per dataset (`--runs 5`) and reports how often each
-outcome appears. A score like `early_detection` **0/5** means zero true positives
-across five attempts—the agent never set `detected=true` on that dataset. **5/5**
-means it caught the excursion every time.
+**Runs per dataset.** The LLM agent is non-deterministic, so `run_v0_repeated.py`
+repeats `investigate()` on each dataset and reports how often each outcome appears.
+A score like **0/5** means zero true positives across five attempts; **3/3** means
+three of three.
 
 **Detection labels** (from `scorer/score.py`):
 
@@ -99,23 +100,15 @@ means it caught the excursion every time.
 | **FP** | No excursion (`clean`); agent falsely flagged one |
 | **TN** | No excursion; agent correctly said clean |
 
-**Row highlights in the table below:**
+**Diagnosis accuracy** — of true positives only: fraction of applicable fields
+(`type`, `location`, `origin_step`, `affected_param`) that match ground truth.
 
-- **`early_detection` detection** — the hardest case for v0: inline metrology drifts
-  over several lots while WAT and Sort still pass standard gates. v0 had no
-  `inline_trace` tool, so it missed the signal all five times. v1 adds that tool plus
-  prompt rules for sustained inline drift and detected it every run.
-- **`clean` false positives** — v0 cried wolf on the control dataset all five runs
-  (five **FP**s). v1’s stricter “default to clean unless a driver clears three bars”
-  rule eliminated those false alarms (five **TN**s).
-- **Overall precision** — `TP / (TP + FP)` aggregated across all eight datasets in
-  each batch run, then averaged over five batch runs. It answers: *when the agent
-  says “excursion,” how often is it right?* v0’s clean-dataset FPs pulled precision
-  to 75%; v1 reached 100% on this suite.
+---
 
-These numbers are from the `_verify` smoke suite (50-lot fixtures), not a full
-~30-dataset production benchmark. They are meant to show architectural leverage—one
-tool + prompt change moving a blind spot to reliable detection—not fab sign-off stats.
+### v0 → v1 (5 runs each) — architectural baseline
+
+First proof that tool + prompt design moves the needle. Pre-cleanup v1 prompt (later
+audited; see below).
 
 | Metric | v0 baseline | v1 (+ `inline_trace`, early-detection rules) |
 |--------|-------------|-----------------------------------------------|
@@ -123,15 +116,41 @@ tool + prompt change moving a blind spot to reliable detection—not fab sign-of
 | `clean` false positives | 5/5 | 0/5 |
 | Overall precision | 75% | 100% |
 
-v0 missed subtle inline drift because it lacked `inline_trace` and tended to over-call
-excursions on clean material. v1 adds the inline tool and stricter pre-step gating for
-`early_detection` while keeping the same deterministic tool stack otherwise.
-
-Run the measurement yourself:
+v0 missed subtle inline drift because it lacked `inline_trace` and over-called
+excursions on clean material. v1 adds the inline tool and stricter pre-step gating;
+detection and precision improved without any ground-truth access.
 
 ```bash
 python run_v0_repeated.py --version v0 --runs 5
 python run_v0_repeated.py --version v1 --runs 5
+```
+
+---
+
+### v1 prompt cleanup (3 runs each) — post external code review
+
+External review flagged **generator-knowledge leaks** in the v1 system prompt: hardcoded
+inline step names (e.g. `gate_etch`), benchmark-specific hints (“early_detection datasets
+score well above…”), and other fixture-tuned wording. Those were removed; rules now tell
+the agent to derive steps from **routing data** and thresholds from the **opening message**,
+not from generator internals.
+
+Post-cleanup re-measurement (`--runs 3`):
+
+| Type | Detection | Diagnosis (TP runs) | Notes |
+|------|-----------|---------------------|-------|
+| `early_detection` | **3/3 TP** | **100%** | Unchanged vs pre-cleanup — capability is architectural (`inline_trace` + pre-step gate), not leaked knowledge |
+| `chamber_specific` | **3/3 TP** | **66.7%** | Down from ~75–80% pre-cleanup; the delta is roughly what the leaked step name was worth |
+
+**Honest read:** scrubbing the prompt did not break `early_detection`—that path was real.
+`chamber_specific` detection still holds; diagnosis dropped because `origin_step` is no
+longer handed to the model. The next improvement is **deterministic**: have a tool (or
+`commonality` enrichment) return the inline step where the flagged chamber processed the
+lot’s wafers, so the agent fills `origin_step` from tool output instead of prompt cheats
+or LLM guesswork.
+
+```bash
+python run_v0_repeated.py --version v1 --runs 3
 ```
 
 Pre-step only (no API, deterministic):
